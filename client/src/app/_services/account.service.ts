@@ -4,7 +4,6 @@ import { LoginModel } from '../models/LoginModel';
 import { map } from 'rxjs/operators'
 import { User } from '../models/User';
 import { ReplaySubject } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -23,14 +22,14 @@ export class AccountService {
       map((response: User) => {
         const user = response
         if (user) {
-          localStorage.setItem('user', JSON.stringify(user))
-          this.currentUserSource.next(user)
+          this.setCurrentUser(user)
         }
       })
     )
   }
 
   setCurrentUser(user: User) {
+    localStorage.setItem('user', JSON.stringify(user))
     this.currentUserSource.next(user)
   }
 
@@ -42,11 +41,9 @@ export class AccountService {
   register(model: User)
   {
     return this.http.post(this.baseUrl+"account/register", model).pipe(
-      map(user=>{
-        if(user)
-        {
-          localStorage.setItem('user', JSON.stringify(user))
-          this.currentUserSource.next(model)
+      map((user : User) => {
+        if(user){
+          this.setCurrentUser(user)
         }
       })
     )

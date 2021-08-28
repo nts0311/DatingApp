@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using API.DTOs;
 using Microsoft.EntityFrameworkCore;
 using API.Interfaces;
+using API.Services;
+using System.Linq;
 
 namespace API.Controllers
 {
@@ -21,7 +23,7 @@ namespace API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<AppUser>> Register(RegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto)
         {
             if (await userExists(registerDto.Username))
             {
@@ -39,13 +41,19 @@ namespace API.Controllers
             _context.User.Add(user);
             await _context.SaveChangesAsync();
 
-            return user;
+            return new UserDto
+            {
+                Username = user.UserName,
+                Token = _tokenService.CreateToken(user)
+            };
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
-            var user = await _context.User.SingleOrDefaultAsync(user => user.UserName == loginDto.Username);
+            var user = await _context.User
+            .Include(u => u.Photos)
+            .SingleOrDefaultAsync(user => user.UserName == loginDto.Username);
 
             if (user == null) return Unauthorized("Invalid username!");
 
@@ -58,9 +66,11 @@ namespace API.Controllers
                 if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid password!");
             }
 
-            return new UserDto {
+            return new UserDto
+            {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user),
+                PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMain)?.Url
             };
         }
 
