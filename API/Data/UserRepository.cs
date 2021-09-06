@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using API.DTOs;
 using API.Entities;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -35,6 +37,11 @@ namespace API.Data
             .SingleOrDefaultAsync(x => x.UserName == username);
         }
 
+        public async Task<AppUser> GetUserByIdAsync(int id)
+        {
+            return await context.User.FindAsync(id);
+        }
+
         public async Task<bool> SaveAllAsync()
         {
             return await context.SaveChangesAsync() > 0;
@@ -45,9 +52,26 @@ namespace API.Data
             context.Entry(user).State = EntityState.Modified;
         }
 
-        public async Task<IEnumerable<MemberDto>> GetMembersAsync()
+        public async Task<PagedList<MemberDto>> GetMembersAsync(UserParams userParams)
         {
-            return await context.User.ProjectTo<MemberDto>(mapper.ConfigurationProvider).ToListAsync();
+            var minDob = DateTime.Today.AddYears(-userParams.MaxAge - 1);
+            var maxDob = DateTime.Today.AddYears(-userParams.MinAge);
+
+            var query = context.User
+                .AsQueryable()
+                .Where(u => u.UserName != userParams.CurrentUsername)
+                .Where(u => u.Gender == userParams.Gender)
+                .Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <= maxDob);
+
+            query = userParams.OrderBy switch
+            {
+                "created" => query.OrderByDescending(u => u.Created),
+                _ => query.OrderByDescending(u => u.LastActive)
+            };
+                
+            return await PagedList<MemberDto>.CreateAsync(
+                query.ProjectTo<MemberDto>(mapper.ConfigurationProvider).AsNoTracking(), 
+                userParams.PageNumber, userParams.PageSize);            
         }
 
         public async Task<MemberDto> GetMemberAsync(string username)
