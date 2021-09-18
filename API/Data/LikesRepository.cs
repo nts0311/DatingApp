@@ -26,7 +26,7 @@ namespace API.Data
 
         public async Task<PagedList<LikeDto>> GetUserLikes(LikeParams likeParams)
         {
-            var users = context.User.AsQueryable();
+            var users = context.Users.AsQueryable();
             var likes = context.Likes.AsQueryable();
 
             if(likeParams.Predicate == "liked")
@@ -55,7 +55,7 @@ namespace API.Data
 
         public async Task<AppUser> GetUserWithLikes(int userId)
         {
-            return await context.User
+            return await context.Users
                 .Include(u => u.LikedUsers)
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }

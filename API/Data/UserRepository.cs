@@ -25,21 +25,21 @@ namespace API.Data
 
         public async Task<IEnumerable<AppUser>> GetUsersAsync()
         {
-            return await context.User
+            return await context.Users
             .Include(p => p.Photos)
             .ToListAsync();
         }
 
         public async Task<AppUser> GetUserByUsernameAsync(string username)
         {
-            return await context.User
+            return await context.Users
             .Include(p => p.Photos)
             .SingleOrDefaultAsync(x => x.UserName == username);
         }
 
         public async Task<AppUser> GetUserByIdAsync(int id)
         {
-            return await context.User.FindAsync(id);
+            return await context.Users.FindAsync(id);
         }
 
         public async Task<bool> SaveAllAsync()
@@ -57,7 +57,7 @@ namespace API.Data
             var minDob = DateTime.Today.AddYears(-userParams.MaxAge - 1);
             var maxDob = DateTime.Today.AddYears(-userParams.MinAge);
 
-            var query = context.User
+            var query = context.Users
                 .AsQueryable()
                 .Where(u => u.UserName != userParams.CurrentUsername)
                 .Where(u => u.Gender == userParams.Gender)
@@ -76,7 +76,7 @@ namespace API.Data
 
         public async Task<MemberDto> GetMemberAsync(string username)
         {
-            return await context.User
+            return await context.Users
                 .Where(user => user.UserName == username)
                 .ProjectTo<MemberDto>(mapper.ConfigurationProvider)
                 .SingleOrDefaultAsync();

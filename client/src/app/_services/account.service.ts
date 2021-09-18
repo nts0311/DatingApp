@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators'
 import { User } from '../models/User';
 import { ReplaySubject } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { isNumber } from 'ngx-bootstrap/chronos/utils/type-checks';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +30,10 @@ export class AccountService {
   }
 
   setCurrentUser(user: User) {
+    user.roles = []
+    const roles = this.getDecodedToken(user.token).role
+    Array.isArray(roles) ? user.roles = roles : user.roles.push(roles)
+
     localStorage.setItem('user', JSON.stringify(user))
     this.currentUserSource.next(user)
   }
@@ -47,5 +52,9 @@ export class AccountService {
         }
       })
     )
+  }
+
+  getDecodedToken(token: string){
+    return JSON.parse(atob(token.split('.')[1]))
   }
 }
