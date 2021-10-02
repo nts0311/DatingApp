@@ -15,14 +15,12 @@ namespace API.Controllers
     [Authorize]
     public class MessagesController : BaseApiController
     {
-        private readonly IUserRepository userRepository;
-        private readonly IMessageRepository messageRepository;
         private readonly IMapper mapper;
-        public MessagesController(IUserRepository userRepository, IMessageRepository messageRepository, IMapper mapper)
+        private readonly IUnitOfWork unitOfWork;
+        public MessagesController(IUnitOfWork unitOfWork, IMapper mapper)
         {
+            this.unitOfWork = unitOfWork;
             this.mapper = mapper;
-            this.messageRepository = messageRepository;
-            this.userRepository = userRepository;
         }
 
         [HttpPost]
@@ -30,14 +28,15 @@ namespace API.Controllers
         {
             var senderUsername = User.GetUsername();
 
-            if(createMessageDto.RecipientUsername == senderUsername) return BadRequest("Cannot send message to yourself.");
+            if (createMessageDto.RecipientUsername == senderUsername) return BadRequest("Cannot send message to yourself.");
 
-            var sender = await userRepository.GetUserByUsernameAsync(senderUsername);
-            var recipient = await userRepository.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
+            var sender = await unitOfWork.UserRepository.GetUserByUsernameAsync(senderUsername);
+            var recipient = await unitOfWork.UserRepository.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
 
-            if(recipient == null) return NotFound("Cannot find recepient");
+            if (recipient == null) return NotFound("Cannot find recepient");
 
-            var message = new Message{
+            var message = new Message
+            {
                 Sender = sender,
                 Recipient = recipient,
                 Content = createMessageDto.Content,
@@ -45,9 +44,10 @@ namespace API.Controllers
                 RecipientUsername = recipient.UserName
             };
 
-            messageRepository.AddMessage(message);
+            unitOfWork.MessageRepository.AddMessage(message);
 
-            if(await messageRepository.SaveAllAsync()){
+            if (await unitOfWork.Complete())
+            {
                 var dto = mapper.Map<MessageDto>(message);
                 return Ok(dto);
             }
@@ -60,19 +60,11 @@ namespace API.Controllers
         {
             messageParams.Username = User.GetUsername();
 
-            var messages = await messageRepository.GetMessagesForUser(messageParams);
+            var messages = await unitOfWork.MessageRepository.GetMessagesForUser(messageParams);
 
             Response.AddPaginationHeader(messages.CurrentPage, messages.PageSize, messages.TotalCount, messages.TotalPages);
 
             return messages;
-        }
-
-        [HttpGet("thread/{username}")]
-        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessageThread(string username)
-        {
-            var currentUsername = User.GetUsername();
-
-            return Ok(await messageRepository.GetMessageThread(currentUsername, username));
         }
 
         [HttpDelete("{id}")]
@@ -80,18 +72,18 @@ namespace API.Controllers
         {
             var username = User.GetUsername();
 
-            var message = await messageRepository.GetMessage(id);
+            var message = await unitOfWork.MessageRepository.GetMessage(id);
 
-            if(message.RecipientUsername != username && message.SenderUsername != username)
+            if (message.RecipientUsername != username && message.SenderUsername != username)
                 return Unauthorized();
 
-            if(message.SenderUsername == username) message.SenderDeleted = true;
-            if(message.RecipientUsername == username) message.RecipientDeleted = true;
+            if (message.SenderUsername == username) message.SenderDeleted = true;
+            if (message.RecipientUsername == username) message.RecipientDeleted = true;
 
-            if(message.SenderDeleted && message.RecipientDeleted) 
-                messageRepository.DeleteMessage(message);
+            if (message.SenderDeleted && message.RecipientDeleted)
+                unitOfWork.MessageRepository.DeleteMessage(message);
 
-            if(await messageRepository.SaveAllAsync()) return Ok();
+            if (await unitOfWork.Complete()) return Ok();
 
             return BadRequest("Error deleting the message.");
         }
