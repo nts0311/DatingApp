@@ -1,1 +1,19 @@
-<p>photo-management works!</p>
+<div class="row">
+    <div class="col-2 text-center" *ngFor="let photo of photos">
+        <p class="">{{photo.username}}</p>
+        <img src="{{photo.url}}" alt="{{photo.url}}" class="img-thumbnail p-1">
+        <div class="text-center center">
+            <button 
+                class="btn btn-sm" 
+           
+                (click)="approvePhoto(photo)"
+                [ngClass]='photo.isMain ? "btn-success active" : "btn-outline-success"'>
+                Approve</button>
+            <button 
+                class="btn btn-sm btn-danger"
+
+                (click)="rejectPhoto(photo)">
+                Reject</button>
+        </div>
+    </div>
+</div>

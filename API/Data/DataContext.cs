@@ -17,6 +17,7 @@ namespace API.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<Group> Groups { get; set; }
         public DbSet<Connection> Connections { get; set; }
+        public DbSet<Photo> Photos { get; set; }
 
         public DataContext(DbContextOptions options) : base(options)
         {
@@ -65,6 +66,8 @@ namespace API.Data
                .OnDelete(DeleteBehavior.Restrict);
 
             builder.ApplyUtcDateTimeConverter();
+
+            builder.Entity<Photo>().HasQueryFilter(p => p.IsApproved);
         }
     }
 

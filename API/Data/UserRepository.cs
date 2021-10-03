@@ -68,11 +68,12 @@ namespace API.Data
                 userParams.PageNumber, userParams.PageSize);            
         }
 
-        public async Task<MemberDto> GetMemberAsync(string username)
+        public async Task<MemberDto> GetMemberAsync(string username, bool includeUnapprovedPhoto)
         {
-            return await context.Users
-                .Where(user => user.UserName == username)
-                .ProjectTo<MemberDto>(mapper.ConfigurationProvider)
+            var query = context.Users.Where(user => user.UserName == username);
+            if(includeUnapprovedPhoto) query = query.IgnoreQueryFilters();
+
+            return await query.ProjectTo<MemberDto>(mapper.ConfigurationProvider)
                 .SingleOrDefaultAsync();
         }
 
@@ -81,5 +82,26 @@ namespace API.Data
             return await context.Users.Where(user => user.UserName == username)
                 .Select(user => user.Gender).FirstOrDefaultAsync();
         }
+
+        public async Task<bool> NeedMainPhoto(int photoId)
+        {
+            return await context.Users
+                .Include(u => u.Photos)
+                .IgnoreQueryFilters()
+                .Where(u => u.Photos.Any(p => p.Id == photoId))
+                .Take(1)
+                .Select(p => p.Photos)
+                .AllAsync(p => p.All(x => !x.IsApproved));
+        }
+
+        // public async Task<AppUser> GetUserByPhoto(int photoId)
+        // {
+        //     return await context.Users
+        //         .Include(u => u.Photos)
+        //         .IgnoreQueryFilters()
+        //         .Take(1)
+        //         .Select(p => p.Photos)
+        //         .AllAsync(p => p.All(x => !x.IsApproved));
+        // }
     }
 }

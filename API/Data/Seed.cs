@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using API.Entities;
@@ -16,6 +17,8 @@ namespace API.Data
             var userData = await System.IO.File.ReadAllTextAsync("Data/UserSeedData.json");
 
             var users = JsonSerializer.Deserialize<List<AppUser>>(userData);
+
+            users.ForEach(u => u.Photos.ToList().ForEach(p => p.IsApproved = true));
 
             var roles = new List<AppRole>{
                 new AppRole {Name = "Member"},

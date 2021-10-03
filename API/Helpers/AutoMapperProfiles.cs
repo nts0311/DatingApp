@@ -26,6 +26,11 @@ namespace API.Helpers
                     mess => mess.Sender.Photos.FirstOrDefault(p => p.IsMain).Url))
                 .ForMember(dto => dto.RecipientPhotoUrl, opt => opt.MapFrom(
                     mess => mess.Recipient.Photos.FirstOrDefault(p => p.IsMain).Url)); 
+
+            CreateMap<Photo, PhotoApprovalDto>()
+                .ForMember(dto => dto.Username, opt => opt.MapFrom(
+                    p => p.AppUser.UserName
+                ));
         }
     }
 }
